@@ -104,7 +104,5 @@ after_bundle do
 
   # # Git
   git init: "--quiet"
-  # remove_file ".gitignore"
-  # get "#{TEMPLATE_ROOT}/rails/gitignore.txt", ".gitignore"
   git add: ".", commit: %(--all --no-verify --quiet --message "Initial commit.")
 end
