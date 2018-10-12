@@ -33,10 +33,15 @@ gem_group :development do
 end
 
 # Remove stuff we don't need
-remove_file "app/helpers"
-remove_file "app/channels"
+remove_file 'app/helpers'
+remove_file 'app/channels'
 remove_file 'app/assets/javascripts/cable.js'
-remove_file "config/cable.yml"
+remove_file 'config/cable.yml'
+remove_file 'app/assets/stylesheets/application.css'
+create_file 'app/assets/stylesheets/application.scss' do <<-EOF
+@import "semantic-ui";
+EOF
+end
 
 inside 'config' do
   remove_file 'database.yml'
