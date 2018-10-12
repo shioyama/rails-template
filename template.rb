@@ -104,6 +104,7 @@ after_bundle do
 
   # set Japanese locale
   get 'https://raw.githubusercontent.com/svenfuchs/rails-i18n/master/rails/locale/ja.yml', 'config/locales/ja.yml'
+  get 'https://raw.githubusercontent.com/svenfuchs/rails-i18n/master/rails/locale/en.yml', 'config/locales/en.yml'
 
   run 'for file in app/views/**/*.erb; do erb2slim $file ${file%erb}slim && rm $file; done'
 
