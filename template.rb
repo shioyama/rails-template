@@ -35,6 +35,8 @@ end
 # Remove stuff we don't need
 remove_file "app/helpers"
 remove_file "app/channels"
+remove_file 'app/assets/javascripts/cable.js'
+remove_file "config/cable.yml"
 
 inside 'config' do
   remove_file 'database.yml'
@@ -57,8 +59,8 @@ EOF
 end
 
 after_bundle do
-  gsub_file 'app/assets/javascripts/application.js', '//= require activestorage', '//#= require activestorage'
-  gsub_file 'app/assets/javascripts/application.js', '//= require turbolinks', '//#= require turbolinks'
+  gsub_file 'app/assets/javascripts/application.js', '//= require activestorage', '//# require activestorage'
+  gsub_file 'app/assets/javascripts/application.js', '//= require turbolinks', '//# require turbolinks'
   gsub_file 'config/application.rb', 'require "active_storage/engine"', '# require "active_storage/engine"'
   gsub_file 'config/application.rb', 'require "action_cable/engine"', '# require "action_cable/engine"'
   %w[test development production].each do |env|
