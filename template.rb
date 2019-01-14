@@ -94,6 +94,8 @@ EOF
 
     run "yarn add jquery less less-loader rails-erb-loader rails-ujs resolve-url-loader #{"turbolinks " unless options[:skip_turbolinks]}--save"
     run "yarn add semantic-ui --dev"
+
+    run "cp node_modules/semantic-ui/src/theme.config.example frontend/theme.config"
   end
 
   # Remove sprockets assets path if we're skipping sprockets
