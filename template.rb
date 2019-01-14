@@ -60,9 +60,12 @@ EOF
 end
 
 after_bundle do
-  # See: https://evilmartians.com/chronicles/evil-front-part-1
-  run "mkdir 'frontend'"
-  create_file 'semantic.json' do <<-EOF
+  if options[:webpack]
+    # See: https://evilmartians.com/chronicles/evil-front-part-1
+    gsub_file "config/webpacker.yml", /source_path\: app\/javascript/, "source_path: frontend", verbose: false
+    run "mv app/javascript frontend"
+
+    create_file 'semantic.json' do <<-EOF
 {
   "base": "frontend/semantic",
   "paths": {
@@ -81,26 +84,26 @@ after_bundle do
     "clean": "dist/"
   },
   "permission": false,
-  "autoInstall": false,
+  "autoInstall": true,
   "rtl": false,
   "components": ["reset", "site", "button", "container", "divider", "flag", "header", "icon", "image", "input", "label", "list", "loader", "placeholder", "rail", "reveal", "segment", "step", "breadcrumb", "form", "grid", "menu", "message", "table", "ad", "card", "comment", "feed", "item", "statistic", "accordion", "checkbox", "dimmer", "dropdown", "embed", "modal", "nag", "popup", "progress", "rating", "search", "shape", "sidebar", "sticky", "tab", "transition", "api", "form", "state", "visibility"],
   "version": "2.4.2"
 }
 EOF
+    end
+
+    run "yarn add jquery less less-loader rails-erb-loader rails-ujs resolve-url-loader #{"turbolinks " unless options[:skip_turbolinks]}--save"
+    run "yarn add semantic-ui --dev"
   end
 
   # Remove sprockets assets path if we're skipping sprockets
   run "rm -rf app/assets" if options[:skip_sprockets]
 
-  run "yarn add jquery less less-loader rails-erb-loader rails-ujs resolve-url-loader #{"turbolinks " unless options[:skip_turbolinks]}--save"
-  #run "yarn add semantic-ui --save-dev --non-interactive"
-
   # set config/application.rb
-  application  do
-    %q{
+  application do <<-EOF
       # Set timezone
-      config.time_zone = 'Tokyo'
-      config.active_record.default_timezone = :local
+      config.time_zone = 'Tokyo'#{%q{
+      config.active_record.default_timezone = :local} unless options[:skip_active_record] }
 
       # Set locale
       I18n.enforce_available_locales = true
@@ -109,8 +112,9 @@ EOF
       config.i18n.available_locales = [:ja, :en]
 
       # Set generator
-      config.generators do |g|
+      config.generators do |g|#{%q{
         g.orm :active_record
+} unless options[:skip_active_record] }
         g.template_engine :slim
         g.test_framework :rspec, :fixture => true
         g.fixture_replacement :factory_bot, :dir => "spec/factories"
@@ -120,15 +124,16 @@ EOF
         g.controller_specs true
         g.routing_specs    false
         g.helper_specs     false
-        g.request_specs    false
+        g.request_specs    false#{%q{
 
         # Assets
         g.stylesheets      false
         g.javascripts      false
         g.helper           false
         g.channel          assets: false
+} if options[:skip_sprockets] }
       end
-    }
+EOF
   end
 
   # set Japanese locale
