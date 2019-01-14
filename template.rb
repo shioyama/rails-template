@@ -1,47 +1,43 @@
-# frozen_string_literal: true
-RAILS_VERSION = '~> 5.2.1'
+# This generator is intended to be run with the following flags:
+#
+#   --skip-test
+#   --database=postgresql
+#   --skip-sprockets
+#   --skip-javascript
+#   --skip-system-test
+#   --skip-active-storage
+#   --webpack
+#
+# Put them in a .railsrc and run:
+#
+#   rails new foo -m ~/dev/rails-template/template.rb
+#
+# It also attempts to accommodate other combination of skip flags in a sensible
+# way, but has not been tested very much for this.
+#
+RAILS_VERSION = '~> 5.2.2'
 
-remove_file "Gemfile"
-run "touch Gemfile"
-add_source 'https://rubygems.org'
+gem_names = %w[activemodel actionpack activejob activesupport railties]
+gem_names << "activerecord"  unless options[:skip_active_record]
+gem_names << "actionmailer"  unless options[:skip_action_mailer]
+gem_names << "actioncable"   unless options[:skip_action_cable]
+gem_names << "activestorage" unless options[:skip_active_storage]
 
-%w[activerecord activemodel actionpack actionview actionmailer activejob activesupport railties].each do |gem_name|
-  gem gem_name, RAILS_VERSION
-end
-gem 'sprockets-rails', '~> 3.2.1'
+gemfile_gems = gem_names.inject("") { |gems, gem_name| gems << "gem \"#{gem_name}\", \"#{RAILS_VERSION}\"\n" }
 
-gem 'pg', '~> 1.0'
-gem 'puma', '~> 3.11'
-gem 'sass-rails', '~> 5.0'
-gem 'uglifier', '>= 1.3.0'
-gem 'slim-rails', '~> 3.1'
-gem 'html2slim'
-gem 'coffee-rails', '~> 4.2'
-gem 'semantic-ui-sass', git: 'https://github.com/doabit/semantic-ui-sass.git'
-gem 'bootsnap', '>= 1.1.0', require: false
-
-gem_group :development, :test do
-  gem 'pry-byebug'
+in_root do
+  gsub_file "Gemfile", /^gem 'rails'.*$/, gemfile_gems, verbose: false
+  gsub_file "Gemfile", /^gem 'jbuilder'/, "# gem 'jbuilder'", verbose: false if options[:skip_javascript]
+  # Replace byebug with pry-byebug, which anyway depends on byebug
+  gsub_file "Gemfile", /gem 'byebug'/, "gem 'pry-byebug'", verbose: false
+  gsub_file "Gemfile", /^group :development, :test do$/, <<-EOF
+group :development, :test do
   gem 'rspec-rails'
   gem 'factory_bot_rails'
-end
-
-gem_group :development do
-  gem 'listen', '>= 3.0.5', '< 3.2'
-  gem 'spring'
-  gem 'spring-watcher-listen', '~> 2.0.0'
-end
-
-# Remove stuff we don't need
-remove_file 'app/helpers'
-remove_file 'app/channels'
-remove_file 'app/assets/javascripts/cable.js'
-remove_file 'config/cable.yml'
-remove_file 'app/assets/stylesheets/application.css'
-create_file 'app/assets/stylesheets/application.scss' do <<-EOF
-@import "semantic-ui";
 EOF
 end
+
+gem 'slim-rails', '~> 3.1'
 
 inside 'config' do
   remove_file 'database.yml'
@@ -64,13 +60,40 @@ EOF
 end
 
 after_bundle do
-  gsub_file 'app/assets/javascripts/application.js', '//= require activestorage', '//# require activestorage'
-  gsub_file 'app/assets/javascripts/application.js', '//= require turbolinks', '//# require turbolinks'
-  gsub_file 'config/application.rb', 'require "active_storage/engine"', '# require "active_storage/engine"'
-  gsub_file 'config/application.rb', 'require "action_cable/engine"', '# require "action_cable/engine"'
-  %w[test development production].each do |env|
-    gsub_file "config/environments/#{env}.rb", /config\.active_storage/, '# config.active_storage'
+  # See: https://evilmartians.com/chronicles/evil-front-part-1
+  run "mkdir 'frontend'"
+  create_file 'semantic.json' do <<-EOF
+{
+  "base": "frontend/semantic",
+  "paths": {
+    "source": {
+      "config": "src/theme.config",
+      "definitions": "src/definitions/",
+      "site": "src/site/",
+      "themes": "src/themes/"
+    },
+    "output": {
+      "packaged": "dist/",
+      "uncompressed": "dist/components/",
+      "compressed": "dist/components/",
+      "themes": "dist/themes/"
+    },
+    "clean": "dist/"
+  },
+  "permission": false,
+  "autoInstall": false,
+  "rtl": false,
+  "components": ["reset", "site", "button", "container", "divider", "flag", "header", "icon", "image", "input", "label", "list", "loader", "placeholder", "rail", "reveal", "segment", "step", "breadcrumb", "form", "grid", "menu", "message", "table", "ad", "card", "comment", "feed", "item", "statistic", "accordion", "checkbox", "dimmer", "dropdown", "embed", "modal", "nag", "popup", "progress", "rating", "search", "shape", "sidebar", "sticky", "tab", "transition", "api", "form", "state", "visibility"],
+  "version": "2.4.2"
+}
+EOF
   end
+
+  # Remove sprockets assets path if we're skipping sprockets
+  run "rm -rf app/assets" if options[:skip_sprockets]
+
+  run "yarn add jquery less less-loader rails-erb-loader rails-ujs resolve-url-loader #{"turbolinks " unless options[:skip_turbolinks]}--save"
+  #run "yarn add semantic-ui --save-dev --non-interactive"
 
   # set config/application.rb
   application  do
@@ -90,22 +113,30 @@ after_bundle do
         g.orm :active_record
         g.template_engine :slim
         g.test_framework :rspec, :fixture => true
-        g.fixture_replacement :factory_girl, :dir => "spec/factories"
-        g.view_specs false
+        g.fixture_replacement :factory_bot, :dir => "spec/factories"
+
+        # Specs
+        g.view_specs       false
         g.controller_specs true
-        g.routing_specs false
-        g.helper_specs false
-        g.request_specs false
-        g.assets false
-        g.helper false
+        g.routing_specs    false
+        g.helper_specs     false
+        g.request_specs    false
+
+        # Assets
+        g.stylesheets      false
+        g.javascripts      false
+        g.helper           false
+        g.channel          assets: false
       end
     }
   end
 
   # set Japanese locale
   get 'https://raw.githubusercontent.com/svenfuchs/rails-i18n/master/rails/locale/ja.yml', 'config/locales/ja.yml'
+  run 'rm config/locales/en.yml'
   get 'https://raw.githubusercontent.com/svenfuchs/rails-i18n/master/rails/locale/en.yml', 'config/locales/en.yml'
 
+  run 'gem install html2slim'
   run 'for file in app/views/**/*.erb; do erb2slim $file ${file%erb}slim && rm $file; done'
 
   run "spring stop"
