@@ -267,6 +267,12 @@ EOF
 
   run 'gem install html2slim'
   run 'for file in app/views/**/*.erb; do erb2slim $file ${file%erb}slim && rm $file; done'
+  if options[:webpack]
+    gsub_file "app/views/layouts/application.html.slim", /^.*stylesheet_link_tag.*$/, <<-EOF
+      = stylesheet_pack_tag 'application', media: 'all'#{"'data-turbolinks-track': 'reload'" unless options[:skip_turbolinks]}
+      = javascript_pack_tag 'application'#{"'data-turbolinks-track': 'reload'" unless options[:skip_turbolinks]}
+EOF
+  end
 
   run "spring stop"
   generate 'rspec:install'
