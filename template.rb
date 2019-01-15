@@ -40,6 +40,14 @@ EOF
 end
 
 gem 'slim-rails', '~> 3.1'
+gem 'foreman'
+
+# Add foreman procfile
+create_file "Procfile" do <<-EOF
+server: bundle exec puma -p 3000
+assets: bin/webpack-dev-server
+EOF
+end
 
 inside 'config' do
   remove_file 'database.yml'
