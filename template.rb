@@ -68,6 +68,44 @@ after_bundle do
 
     # See: https://evilmartians.com/chronicles/evil-front-part-1
     gsub_file "config/webpacker.yml", /source_path\: app\/javascript/, "source_path: frontend"
+    insert_into_file "app/controllers/application_controller.rb", <<-EOF, after: /^class ApplicationController.*\n/
+  prepend_view_path Rails.root.join("frontend")
+EOF
+    insert_into_file "app/helpers/application_helper.rb", <<-EOF, after: /^module ApplicationHelper.*\n/
+  def component(component_name, locals = {}, &block)
+    name = component_name.split("_").first
+    render(['components', name, component_name].compact.join('/'), locals, &block)
+  end
+
+  alias c component
+EOF
+    create_file "lib/generators/component_generator.rb" do <<-EOF
+class ComponentGenerator < Rails::Generators::Base
+  argument :component_name, required: true, desc: "Component name, e.g: button"
+
+  def create_view_file
+    #{'create_file "#{component_path}/_#{component_name}.html.slim"'}
+  end
+
+  def create_css_file
+    #{'create_file "#{component_path}/#{component_name}.scss"'}
+  end
+
+  def create_js_file
+    create_file "\#{component_path}/\#{component_name}.js" do
+      # require component's CSS inside JS automatically
+      "#{'import \"./#{component_name}.scss\";\n'}"
+    end
+  end
+
+  protected
+
+  def component_path
+    "#{'frontend/components/#{component_name}'}"
+  end
+end
+EOF
+    end
 
     run "mv app/javascript frontend"
     run "mkdir frontend/site"
