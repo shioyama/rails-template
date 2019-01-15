@@ -64,7 +64,6 @@ end
 after_bundle do
   if options[:webpack]
     run "rails webpacker:install:erb"
-    #remove_file "frontend/packs/hello_erb.js.erb"
 
     # See: https://evilmartians.com/chronicles/evil-front-part-1
     gsub_file "config/webpacker.yml", /source_path\: app\/javascript/, "source_path: frontend"
