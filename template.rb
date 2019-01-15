@@ -115,7 +115,12 @@ EOF
     end
 
     run "mv app/javascript frontend"
-    run "mkdir frontend/site"
+    run "mkdir -p frontend/site/globals"
+    create_file "frontend/site/globals/site.variables" do <<-EOF
+// Add any custom SemanticUI global variable values here, e.g.:
+// @primaryColor : #bad304;
+EOF
+    end
     run "mkdir frontend/components"
     run "mkdir frontend/init"
     run "mkdir frontend/images"
