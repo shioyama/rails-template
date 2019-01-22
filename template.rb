@@ -278,6 +278,16 @@ EOF
   generate 'rspec:install'
   run "echo '--color -f d' > .rspec"
 
+  # Docker
+  create_file ".dockerignore" do <<-EOF
+.git
+log
+tmp
+node_modules
+spec
+EOF
+  end
+
   # Git
   git init: "--quiet"
   git add: ".", commit: %(--all --no-verify --quiet --message "Initial commit.")
